@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Blockchain E-Voting</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; padding: 30px; color: #fff; }
+        .main-container { max-width: 900px; margin: auto; background: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        
+        .header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 25px; }
+        h2, h3 { color: #eaeced; }
+        
+        .logout-btn { background: #eeefef; color: rgb(19, 18, 18); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; }
+        .logout-btn:hover { background: #64748b; }
+
+        .section-box { background: #0f172a; border: 1px solid #334155; padding: 20px; border-radius: 12px; margin-bottom: 25px; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+        input { padding: 12px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; color: #fff; font-size: 14px; outline: none; }
+        input:focus { border-color: #38bdf8; }
+        
+        .add-btn { background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; grid-column: span 3; padding: 12px; }
+        .add-btn:hover { background: #059669; }
+
+        .candidate-row { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 15px; border-radius: 6px; margin-top: 10px; border: 1px solid #334155; }
+        .remove-btn { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .remove-btn:hover { background: #dc2626; }
+
+        .action-cluster { display: flex; gap: 15px; margin-bottom: 25px; }
+        .ledger-toggle-btn { flex: 1; background: linear-gradient(135deg, #eff2f4, #e9edf0); color: rgb(51, 51, 51); border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3); }
+        .history-toggle-btn { flex: 1; background: linear-gradient(135deg, #efeef1, #e3e2e6); color: rgb(41, 41, 41); border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); }
+
+        /* Modal styling for Blockchain Ledger & History */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
+        .modal-content { background: #1e293b; padding: 30px; border-radius: 12px; width: 700px; max-height: 80vh; overflow-y: auto; border: 1px solid #334155; }
+        .close-modal { float: right; background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        .block { background: #0f172a; border-left: 5px solid #10b981; padding: 15px; margin: 15px 0; border-radius: 8px; font-family: monospace; font-size: 16px; word-break: break-all; border-top: 1px solid #334155; border-right: 1px solid #334155; border-bottom: 1px solid #334155; }
+        .invalid { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+        .status-badge { display: inline-block; padding: 6px 15px; border-radius: 20px; font-weight: bold; font-size: 16px; margin-bottom: 15px; }
+        .status-valid { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+        .status-invalid { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="header-flex">
+        <h2>🛡️ Admin Security & Control Panel</h2>
+        <a href="index.html" class="logout-btn" onclick="localStorage.clear()">Logout</a>
+    </div>
+
+    <!-- Candidate Management Section -->
+    <div class="section-box">
+        <h3>Add Election Candidate</h3>
+        <div class="form-grid">
+            <input type="text" id="candId" placeholder="Candidate ID (e.g. C01)">
+            <input type="text" id="candName" placeholder="Candidate Name">
+            <input type="text" id="candParty" placeholder="Party Name">
+            <button class="add-btn" onclick="addCandidate()">Add Candidate</button>
+        </div>
+        <div id="candidate-list-admin" style="margin-top: 15px;">Loading candidates...</div>
+    </div>
+
+    <!-- Feature Buttons Cluster -->
+    <div class="action-cluster">
+        <button class="ledger-toggle-btn" onclick="openLedgerModal()">⛓️ View Blockchain Ledger & Tamper Check</button>
+        <button class="history-toggle-btn" onclick="openHistoryModal()">👥 View Voter History</button>
+    </div>
+</div>
+
+<!-- Blockchain Ledger Modal -->
+<div class="modal" id="ledgerModal">
+    <div class="modal-content">
+        <button class="close-modal" onclick="closeModals()">Close X</button>
+        <h3>Blockchain Ledger & Cryptographic Integrity</h3>
+        <p style="color: #94a3b8; font-size: 13px; margin: 10px 0 15px 0;">Validates hashes and block continuity in real-time.</p>
+        <div id="chain-status" class="status-badge status-valid">Loading status...</div>
+        <div id="blockchain-view">Loading blocks...</div>
+    </div>
+</div>
+
+<!-- Voter History Modal -->
+<div class="modal" id="historyModal">
+    <div class="modal-content">
+        <button class="close-modal" onclick="closeModals()">Close X</button>
+        <h3>Registered Voters & Voting Status History</h3>
+        <div id="voter-history-list" style="margin-top: 15px;">Loading history...</div>
+    </div>
+</div>
+
+<script>
+    async function loadAdminCandidates() {
+        try {
+            const res = await fetch('/api/candidates');
+            const data = await res.json();
+            const container = document.getElementById('candidate-list-admin');
+            
+            if (data.candidates.length === 0) {
+                container.innerHTML = "<p style='color:#94a3b8; font-size:13px;'>No candidates added yet.</p>";
+                return;
+            }
+
+            container.innerHTML = "<h4 style='color:#94a3b8; font-size:14px; margin-bottom:5px;'>Existing Candidates:</h4>";
+            data.candidates.forEach(cand => {
+                container.innerHTML += `
+                    <div class="candidate-row">
+                        <div><strong>${cand.name}</strong> (${cand.party}) - ID: ${cand.candidateId}</div>
+                        <button class="remove-btn" onclick="removeCandidate('${cand.candidateId}')">Remove</button>
+                    </div>
+                `;
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function addCandidate() {
+        const candidateId = document.getElementById('candId').value.trim();
+        const name = document.getElementById('candName').value.trim();
+        const party = document.getElementById('candParty').value.trim();
+
+        if (!candidateId || !name || !party) {
+            alert("Please fill all candidate fields!");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/candidate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ candidateId, name, party })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if (data.success) {
+                document.getElementById('candId').value = '';
+                document.getElementById('candName').value = '';
+                document.getElementById('candParty').value = '';
+                loadAdminCandidates();
+            }
+        } catch (err) {
+            alert("Error connecting to server");
+        }
+    }
+
+    async function removeCandidate(id) {
+        if (!confirm(`Are you sure you want to remove candidate ${id}?`)) return;
+        try {
+            const res = await fetch(`/api/candidate/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message);
+            loadAdminCandidates();
+        } catch (err) {
+            alert("Error removing candidate");
+        }
+    }
+
+    async function openLedgerModal() {
+        document.getElementById('ledgerModal').style.display = 'flex';
+        try {
+            const res = await fetch('/api/chain');
+            const data = await res.json();
+            
+            const statusEl = document.getElementById('chain-status');
+            if (data.isValid) {
+                statusEl.className = "status-badge status-valid";
+                statusEl.innerText = "✔ Chain Status: Valid & Secure (Tamper-Free)";
+            } else {
+                statusEl.className = "status-badge status-invalid";
+                statusEl.innerText = "✖ Chain Status: INVALID - Tampering Detected!";
+            }
+
+            const viewEl = document.getElementById('blockchain-view');
+            viewEl.innerHTML = '';
+
+            data.chain.forEach(block => {
+                viewEl.innerHTML += `
+                    <div class="block ${data.isValid ? '' : 'invalid'}">
+                        <strong>Block Index:</strong> ${block.index} &nbsp;|&nbsp; 
+                        <strong>Timestamp:</strong> ${block.timestamp}<br>
+                        <strong>Vote Data:</strong> ${JSON.stringify(block.voteData)}<br>
+                        <strong>Previous Hash:</strong> ${block.previousHash}<br>
+                        <strong>Current Hash:</strong> ${block.hash}
+                    </div>
+                `;
+            });
+        } catch (err) {
+            document.getElementById('blockchain-view').innerText = "Failed to load blockchain ledger.";
+        }
+    }
+
+    async function openHistoryModal() {
+        document.getElementById('historyModal').style.display = 'flex';
+        try {
+            const res = await fetch('/api/voter-history');
+            const data = await res.json();
+            const container = document.getElementById('voter-history-list');
+
+            if (data.voters.length === 0) {
+                container.innerHTML = "<p style='color:#94a3b8;'>No registered voters found.</p>";
+                return;
+            }
+
+            container.innerHTML = "";
+            data.voters.forEach(v => {
+                container.innerHTML += `
+                    <div class="candidate-row">
+                        <div><strong>Voter ID:</strong> ${v.voterId} <br><small style="color:#94a3b8;">Email: ${v.email || 'N/A'}</small></div>
+                        <div>Status: <span style="color: ${v.hasVoted ? '#34d399' : '#f87171'}; font-weight:bold;">${v.hasVoted ? 'Voted' : 'Not Voted'}</span></div>
+                    </div>
+                `;
+            });
+        } catch(err) {
+            document.getElementById('voter-history-list').innerText = "Failed to load voter history.";
+        }
+    }
+
+    function closeModals() {
+        document.getElementById('ledgerModal').style.display = 'none';
+        document.getElementById('historyModal').style.display = 'none';
+    }
+
+    loadAdminCandidates();
+</script>
+
+</body>
+</html>

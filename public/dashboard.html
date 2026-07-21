@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Voting Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; padding: 30px; color: #fff; }
+        .container { max-width: 660px; margin: auto; background: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #334155; position: relative; }
+        
+        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #334155; padding-bottom: 16px; }
+        h2 { color: #ebeff0; }
+        
+        .back-btn { background: #eae8e8; color: rgb(20, 20, 20); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; }
+        .back-btn:hover { background: #64748b; }
+
+        .candidate-card { background: #18233c; border: 1px solid #2b3646; padding: 20px; margin: 15px 0; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .candidate-card:hover { border-color: #38bdf8; }
+        
+        button.vote-btn { padding: 10px 20px; background: #066d1e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button.vote-btn:hover { background: #059669; }
+
+        .tamper-section { margin-top: 30px; text-align: center; border-top: 1px solid #334155; padding-top: 20px; }
+        .tamper-btn { background: #ef4444; color: white; border: none; padding: 12px 20px; border-radius: 9px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
+        .tamper-btn:hover { background: #e9e4e4; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="top-nav">
+        <h2>Secure Voting Portal</h2>
+        <a href="index.html" class="back-btn" onclick="localStorage.clear()">⬅ Back to Login</a>
+    </div>
+
+    <div id="candidate-list">Loading candidates...</div>
+
+    <!-- Wow Factor: Live Tamper Button inside Dashboard -->
+    <div class="tamper-section">
+        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 10px;">Simulation Tool for Examiners</p>
+        <button class="tamper-btn" onclick="triggerTamper()">⚡ Simulate Blockchain Tamper (Break Integrity)</button>
+    </div>
+</div>
+
+<script>
+    const voterId = localStorage.getItem('voterId');
+    if (!voterId) {
+        window.location.href = 'index.html';
+    }
+
+    async function loadCandidates() {
+        try {
+            const res = await fetch('/api/candidates');
+            const data = await res.json();
+            const container = document.getElementById('candidate-list');
+            
+            if (data.candidates.length === 0) {
+                container.innerHTML = "<p style='text-align:center; color:#94a3b8;'>No candidates available. Admin needs to add candidates.</p>";
+                return;
+            }
+
+            container.innerHTML = "";
+            data.candidates.forEach(cand => {
+                container.innerHTML += `
+                    <div class="candidate-card">
+                        <div>
+                            <strong style="font-size: 18px; color: #f8fafc;">${cand.name}</strong><br>
+                            <span style="color: #38bdf8;">Party: ${cand.party}</span><br>
+                            <small style="color: #64748b;">ID: ${cand.candidateId}</small>
+                        </div>
+                        <button class="vote-btn" onclick="castVote('${cand.candidateId}')">Cast Vote</button>
+                    </div>
+                `;
+            });
+        } catch (err) {
+            document.getElementById('candidate-list').innerText = "Failed to load candidates.";
+        }
+    }
+
+    async function castVote(candidateId) {
+        if (!confirm("Are you sure you want to lock your vote into the blockchain?")) return;
+
+        try {
+            const res = await fetch('/api/vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ voterId, candidateId })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                alert(data.message + " Redirecting to verification view.");
+                window.location.href = 'admin.html'; // Directs to admin/chain view to see the block!
+            } else {
+                alert(data.message);
+            }
+        } catch (err) {
+            alert("Voting error occurred!");
+        }
+    }
+
+    async function triggerTamper() {
+        try {
+            const res = await fetch('/api/tamper', { method: 'POST' });
+            const data = await res.json();
+            alert(data.message);
+            if(data.success) {
+                window.location.href = 'admin.html'; // Check integrity break in admin view
+            }
+        } catch(err) {
+            alert("Tamper request failed.");
+        }
+    }
+
+    loadCandidates();
+</script>
+
+</body>
+</html>

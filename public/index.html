@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Blockchain E-Voting System</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body { 
+            background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #0f172a 60%, #020617 100%); 
+            display: flex; justify-content: center; align-items: center; height: 100vh; position: relative; color: #f8fafc; overflow: hidden;
+        }
+        
+        /* Glowing Ambient Background Orbs */
+        body::before {
+            content: ''; position: absolute; width: 400px; height: 400px; background: rgba(56, 189, 248, 0.15); filter: blur(90px); border-radius: 50%; top: 10%; left: 15%; z-index: 0;
+        }
+        body::after {
+            content: ''; position: absolute; width: 400px; height: 400px; background: rgba(139, 92, 246, 0.15); filter: blur(90px); border-radius: 50%; bottom: 10%; right: 15%; z-index: 0;
+        }
+
+        .top-bar { position: absolute; top: 50px; right: 40px; z-index: 10; }
+        .admin-direct-btn { 
+            background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; padding: 10px 24px; border-radius: 30px; text-decoration: none; font-weight: 600; font-size: 14px;
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4); transition: all 0.3s ease; border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px);
+        }
+        .admin-direct-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(245, 158, 11, 0.6); }
+
+        .card { 
+            position: relative; z-index: 10; background: rgba(30, 41, 59, 0.65); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); 
+            padding: 45px 40px; border-radius: 24px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6); width: 420px; text-align: center;
+        }
+        h2 { margin-bottom: 25px; font-weight: 800; font-size: 28px; letter-spacing: -0.5px; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip :text; -webkit-text-fill-color: transparent; }
+        
+        .input-group { text-align: left; margin-bottom: 18px; }
+        label { display: block; font-size: 16px; color: #94a3b8; margin-bottom: 8px; font-weight: 550; letter-spacing: 0.3px; }
+        input { 
+            width: 100%; padding: 14px 16px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(236, 240, 245, 0.8); border-radius: 12px; 
+            font-size: 15px; color: #fff; outline: none; transition: all 0.3s ease; 
+        }
+        input:focus { border-color: #38bdf8; box-shadow: 0 0 15px rgba(219, 226, 229, 0.25); background: rgba(15, 23, 42, 0.9); }
+        
+        .btn { 
+            width: 100%; padding: 14px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 12px; 
+            cursor: pointer; font-size: 16px; font-weight: 600; margin-top: 10px; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(2, 132, 199, 0.4); 
+        }
+        .btn:hover { transform: translateY(-2px); opacity: 0.95; box-shadow: 0 6px 25px rgba(2, 132, 199, 0.6); }
+        .toggle-btn { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); margin-top: 12px; }
+        
+        .msg { color: #f87171; font-size: 14px; margin-top: 18px; font-weight: 500; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <a href="admin.html" class="admin-direct-btn">🛡️ Admin Portal</a>
+</div>
+
+<div class="card">
+    <h2 id="form-title">Voter Login</h2>
+    
+    <div class="input-group">
+        <label>Voter ID</label>
+        <input type="text" id="voterId" placeholder="Enter your secure Voter ID">
+    </div>
+
+    <div class="input-group" id="email-group" style="display: none;">
+        <label>Email Address</label>
+        <input type="email" id="email" placeholder="Enter your email id">
+    </div>
+    
+    <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="••••••••••••">
+    </div>
+
+    <button class="btn" id="action-btn" onclick="handleSubmit()">Login to Portal</button>
+    <button class="btn toggle-btn" onclick="toggleMode()">New User? Register</button>
+    
+    <div class="msg" id="msg"></div>
+</div>
+
+<script>
+    let isRegister = false;
+
+    function toggleMode() {
+        isRegister = !isRegister;
+        document.getElementById('form-title').innerText = isRegister ? "Voter Registration" : "Voter Login";
+        document.getElementById('action-btn').innerText = isRegister ? "Register Account" : "Login to Portal";
+        document.querySelector('.toggle-btn').innerText = isRegister ? "Existing User? Login" : "New User? Register";
+        document.getElementById('email-group').style.display = isRegister ? "block" : "none";
+        document.getElementById('msg').innerText = "";
+    }
+
+    async function handleSubmit() {
+        const voterId = document.getElementById('voterId').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const msg = document.getElementById('msg');
+
+        if (!voterId || !password || (isRegister && !email)) {
+            msg.innerText = "Please fill out all required fields!";
+            return;
+        }
+
+        const endpoint = isRegister ? '/api/register' : '/api/login';
+        const payload = isRegister ? { voterId, password, email } : { voterId, password };
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                if (isRegister) {
+                    alert("Registered successfully! Please login.");
+                    toggleMode();
+                } else {
+                    localStorage.setItem('voterId', data.voterId);
+                    localStorage.setItem('role', data.role);
+                    localStorage.setItem('email', data.email);
+                    localStorage.setItem('otp', data.otp);
+
+                    if (data.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'otp.html';
+                    }
+                }
+            } else {
+                msg.innerText = data.message;
+            }
+        } catch (err) {
+            msg.innerText = "Server connection error!";
+        }
+    }
+</script>
+
+</body>
+</html>
