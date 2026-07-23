@@ -7,6 +7,7 @@ An advanced, highly secure electronic voting platform powered by custom **Blockc
 
 Live Link : https://blockchain-based-e-voting-system-1uvi.onrender.com/
 
+----------------------------------------------------------------------------------
 
 ## 🌟 Key Features
 
